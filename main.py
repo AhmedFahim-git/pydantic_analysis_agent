@@ -12,7 +12,6 @@ from sqlalchemy import (
     and_,
     text,
 )
-from sqlalchemy.exc import InternalError, ProgrammingError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -137,6 +136,7 @@ class User(Base):
         String(50), index=True, nullable=False, unique=True
     )
     hashed_password: Mapped[str] = mapped_column(String(length=200), nullable=False)
+    email: Mapped[str] = mapped_column(String(50), nullable=False)
 
     sessions: Mapped[list["Session"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -197,7 +197,10 @@ async def make_init_data(session: AsyncSession):
     products = [
         Product(product_name=f"prod_{i}", product_price=i + 1) for i in range(1, 11)
     ]
-    users = [User(username=f"user_{i}", hashed_password="psswd") for i in range(1, 5)]
+    users = [
+        User(username=f"user_{i}", hashed_password="psswd", email=f"user_{i}@gmail.com")
+        for i in range(1, 5)
+    ]
     addresses = [Address(city=f"city_{i}") for i in range(1, 5)]
     # session.add_all(users)
     # session.add_all(products)
@@ -418,6 +421,7 @@ CREATE ROLE user_role NOLOGIN;
 GRANT SELECT ON addresses, products, stores, stores_products, transactions, transactions_products TO user_role;
 CREATE POLICY user_view ON transactions FOR SELECT TO user_role USING ((SELECT split_part(current_user, '_', 2)::integer) = user_id);
 """
+
 
 # -- GRANT SELECT (user_id, username) ON users TO user_role;
 # -- CREATE POLICY user_view ON users FOR SELECT TO user_role USING ((SELECT split_part(current_user, '_', 2)::integer) = user_id);
