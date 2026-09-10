@@ -1,0 +1,12 @@
+[project]
+name = "pydantic-analysis-agent"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "httpx2>=2.12.0",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-ai-harness>=0.28.0",
+    "pydantic-ai-slim[duckduckgo,evals,logfire,mcp,openai,retries,temporal,web-fetch]>=2.37.0",
+    "sqlalchemy>=2.0.52",
+    "tabulate>=0.10.0",
+]
