@@ -1,0 +1,14 @@
+---
+configMapGenerator:
+  - name: bucket-config
+    envs:
+      - ./application.properties
+
+secretGenerator:
+  - name: bucket-secret
+    envs:
+      - ./.env
+
+resources:
+  - deploy.yaml
+  - service.yaml

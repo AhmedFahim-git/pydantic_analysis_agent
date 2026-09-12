@@ -1,0 +1,36 @@
+---
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: pydantic_analysis_agent
+build:
+  artifacts:
+    - image: fahim03/bucket_service
+      context: ./services/bucket_manage
+    - image: fahim03/streamlit_app
+      context: ./services/streamlit_app
+    - image: fahim03/agent_app
+      context: ./services/agent_app
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+
+manifests:
+  rawYaml:
+    - https://github.com/kubernetes-sigs/agent-sandbox/releases/latest/download/sandbox.yaml
+    - ./manifests/db/namespace.yaml
+    - ./manifests/gateway/gateway.yaml
+    - ./manifests/gateway/host_gateway.yaml
+  helm:
+    releases:
+      - name: postgres
+        remoteChart: bitnami/postgresql
+        namespace: postgres-helm
+        valuesFiles:
+          - ./manifests/db/secret_values.yaml
+  kustomize:
+    paths:
+      - ./manifests/bucket_manage
+      - ./manifests/floci
+      - ./manifests/agent_app
+      - ./manifests/streamlit_app

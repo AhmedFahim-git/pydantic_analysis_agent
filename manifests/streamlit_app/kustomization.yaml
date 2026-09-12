@@ -1,0 +1,14 @@
+---
+configMapGenerator:
+  - name: streamlit-config
+    envs:
+      - ./application.properties
+
+# secretGenerator:
+#   - name: streamlit-secret
+#     envs:
+#       - ./.env
+
+resources:
+  - deploy.yaml
+  - service.yaml

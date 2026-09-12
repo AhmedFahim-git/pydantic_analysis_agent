@@ -1,0 +1,27 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-app-deploy
+  labels:
+    app: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-pod
+  template:
+    metadata:
+      labels:
+        app: agent-pod
+    spec:
+      containers:
+        - name: agent-cont
+          image: fahim03/agent_app:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: agent-config
+            - secretRef:
+                name: agent-secret

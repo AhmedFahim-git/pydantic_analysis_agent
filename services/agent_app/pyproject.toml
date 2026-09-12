@@ -1,0 +1,15 @@
+[project]
+name = "agent-app"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "fastapi>=0.141.1",
+    "k8s-agent-sandbox[async]>=1.0.3",
+    "psycopg[binary]>=3.3.5",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-ai-slim[duckduckgo,evals,logfire,mcp,openai,retries,temporal,web-fetch]>=2.43.0",
+    "pyjwt>=2.14.0",
+    "sqlalchemy[asyncio]>=2.0.52",
+    "tabulate>=0.10.0",
+    "uvicorn>=0.52.4",
+]

@@ -1,0 +1,14 @@
+---
+configMapGenerator:
+  - name: agent-config
+    envs:
+      - ./application.properties
+
+secretGenerator:
+  - name: agent-secret
+    envs:
+      - ./.env
+
+resources:
+  - deploy.yaml
+  - service.yaml
