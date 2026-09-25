@@ -15,6 +15,7 @@ spec:
       labels:
         app: agent-pod
     spec:
+      serviceAccountName: sandbox-client
       containers:
         - name: agent-cont
           image: fahim03/agent_app:latest

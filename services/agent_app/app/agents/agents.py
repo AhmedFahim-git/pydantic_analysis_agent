@@ -7,30 +7,9 @@ from .tools import (
     get_current_time,
     get_user_age_and_name,
     model,
+    python_agent_tool,
     run_user_query,
 )
-
-# class TableList(BaseModel):
-#     table_list: list[Literal[tuple(TABLE_NAMES)]]
-
-
-# table_selection_agent = Agent(
-#     model,
-#     instructions=f"Carefully read the user request and the available tables. Then return list of tables that are required to answer the user request by a sql query. Return the list of table names only.\n\nList of tables:\n\n{get_schema_examples()}",
-#     output_type=list[Literal[tuple(TABLE_NAMES)]],
-# )
-#
-# sql_query_agent = Agent(
-#     model,
-#     instructions="Given the database tables, generate a sql query to answer the user's request.\n\nNote: You only have read access to the tables, and only the ones that belong to user.",
-#     deps_type=SQLQueryModel,
-# )
-#
-#
-# @sql_query_agent.instructions
-# def add_user_tables(ctx: RunContext[SQLQueryModel]) -> str:
-#     return f"In SQL queries use value of user_id columns as {ctx.deps.user_id} for current user.\n\nList of tables:\n\n{get_schema_examples(ctx.deps.table_names)}"
-
 
 new_capability = Capability(
     id="custom_capability",
@@ -58,6 +37,12 @@ new_capability = Capability(
         Tool(
             run_user_query,
             takes_ctx=True,
+            docstring_format="google",
+            require_parameter_descriptions=True,
+        ),
+        Tool(
+            python_agent_tool,
+            takes_ctx=False,
             docstring_format="google",
             require_parameter_descriptions=True,
         ),

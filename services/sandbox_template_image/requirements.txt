@@ -1,0 +1,5 @@
+fastapi[standard]
+ipykernel
+jupyter-client
+httpx
+pandas

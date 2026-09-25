@@ -3,12 +3,16 @@ from datetime import UTC, datetime
 from random import randrange
 from typing import Literal
 
+from k8s_agent_sandbox.async_sandbox import AsyncSandbox
+from k8s_agent_sandbox.async_sandbox_client import AsyncSandboxClient
+from k8s_agent_sandbox.commands.async_command_executor import AsyncCommandExecutor
+from k8s_agent_sandbox.models import SandboxInClusterConnectionConfig
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.db.db_utils import TABLE_NAMES, get_schema_examples, run_sql_query
-from app.models.agent_models import SessionDep, SQLQueryModel
+from app.models.agent_models import SandboxDep, SessionDep, SQLQueryDep
 
 model = OpenAIChatModel(
     os.environ["OPENAI_MODEL_NAME"],
@@ -19,7 +23,6 @@ model = OpenAIChatModel(
 
 table_selection_agent = Agent(
     model,
-    # instructions=f"Carefully read the user request and the available tables. Then return list of tables that are required to answer the user request by a sql query. Return the list of table names only.\n\nList of tables:\n\n{get_schema_examples()}",
     output_type=list[Literal[tuple(TABLE_NAMES)]],
 )
 
@@ -96,13 +99,12 @@ Output requirements:
 - Do not include markdown code fences.
 - Do not include explanations, comments, reasoning, or any text before or after
   the SQL query.""",
-    # instructions="Given the database tables, generate a sql query to answer the user's request.\n\nNote: You only have read access to the tables, and only the ones that belong to user.",
-    deps_type=SQLQueryModel,
+    deps_type=SQLQueryDep,
 )
 
 
 @sql_query_agent.instructions
-def add_user_tables(ctx: RunContext[SQLQueryModel]) -> str:
+def add_user_tables(ctx: RunContext[SQLQueryDep]) -> str:
     return f"""Note:
 - Use user_id = {ctx.deps.user_id} in your SQL queries if required.
 
@@ -118,7 +120,7 @@ async def run_user_query(ctx: RunContext[SessionDep], user_query: str) -> str:
     print(table_names_result.output)
     sql_query_result = await sql_query_agent.run(
         user_query,
-        deps=SQLQueryModel(
+        deps=SQLQueryDep(
             user_id=ctx.deps.user_id, table_names=table_names_result.output
         ),
     )
@@ -209,4 +211,80 @@ Args:
 
 Returns:
     A string containing the user's name and age in days.
+"""
+
+python_agent = Agent(
+    model,
+    name="python_agent",
+    deps_type=SandboxDep,
+    instructions="""You are a helpful assistant with access to a Python execution tool called `run_python_code`.
+
+Use the tool when Python execution is useful or necessary, especially for calculations, data analysis, code execution, debugging, or verification.
+
+Tool:
+- `run_python_code(code: str)` executes Python in a Jupyter-like environment and returns JSON with `stdout`, `stderr`, and `exit_code`.
+
+Guidelines:
+1. Understand the user's request and use Python when it materially helps.
+2. Write self-contained code that directly addresses the task.
+3. Check `stderr` and `exit_code` before relying on the result. Retry if appropriate.
+4. Never claim code was executed unless you actually used the tool.
+5. Never fabricate execution results.
+6. If Python is unnecessary, answer directly.
+7. Keep the final answer concise and clearly present relevant execution results.
+""",
+)
+
+
+@python_agent.tool
+async def run_python_code(ctx: RunContext[SandboxDep], code: str) -> str:
+    assert isinstance(ctx.deps.sandbox.commands, AsyncCommandExecutor)
+    res = await ctx.deps.sandbox.commands.run(code)
+    return res.model_dump_json()
+
+
+run_python_code.__doc__ = """Execute Python code in a Jupyter-like environment.
+
+The code is executed in a stateful Python environment that supports
+notebook-style execution. Standard output and standard error are captured,
+and the execution result is returned as a JSON string containing the
+process exit code.
+
+Args:
+    code: Python source code to execute.
+
+Returns:
+    A JSON string containing the execution results with the following
+    fields:
+        stdout: Captured standard output from the execution.
+        stderr: Captured standard error from the execution.
+        exit_code: The execution exit code. A value of 0 indicates
+            successful execution.
+"""
+
+
+async def python_agent_tool(user_input: str) -> str:
+    async with AsyncSandboxClient(
+        connection_config=SandboxInClusterConnectionConfig()
+    ) as client:
+        sandbox: AsyncSandbox = await client.create_sandbox(
+            warmpool="my-sandboxwarmpool", shutdown_after_seconds=9000
+        )
+        res = await python_agent.run(user_input, deps=SandboxDep(sandbox=sandbox))
+        await sandbox.terminate()
+    return res.output
+
+
+python_agent_tool.__doc__ = """Execute a Python-related task using a dedicated Python subagent.
+
+The subagent interprets the user's request, uses a Jupyter-like Python
+environment when appropriate, and returns a concise answer based on the
+execution results. Use this tool for tasks that require Python execution,
+calculations, data analysis, code testing, debugging, or verification.
+
+Args:
+    user_input: The user's request or task to be solved using Python.
+
+Returns:
+    The subagent's final answer to the user's request.
 """

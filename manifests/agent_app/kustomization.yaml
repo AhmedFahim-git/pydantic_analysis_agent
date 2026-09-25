@@ -10,5 +10,6 @@ secretGenerator:
       - ./.env
 
 resources:
+  - rbac.yaml
   - deploy.yaml
   - service.yaml

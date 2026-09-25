@@ -4,6 +4,8 @@ from collections import deque
 import httpx2
 import streamlit as st
 
+TIMEOUT_SECONDS = 9000
+
 
 def set_selectbox_index_button():
     st.session_state["select_chat"] = None
@@ -26,7 +28,7 @@ def get_chat_history():
         res = httpx2.get(
             f"{os.environ['AGENT_APP_URL']}/chat/{session_id}/all_messages",
             headers=st.session_state["header"],
-            timeout=20,
+            timeout=TIMEOUT_SECONDS,
         )
         res.raise_for_status()
         st.session_state["messages"] = res.json()["message_list"]
@@ -46,7 +48,7 @@ def chat_submit_callback(session_id: str | None = None):
             f"{os.environ['AGENT_APP_URL']}/chat",
             headers=st.session_state["header"],
             json={"role": "user", "content": st.session_state["user_prompt"]},
-            timeout=20,
+            timeout=TIMEOUT_SECONDS,
         )
         res.raise_for_status()
         session = res.json()
@@ -189,7 +191,7 @@ if st.session_state.get("jwt"):
             f"{os.environ['AGENT_APP_URL']}/chat/{chat_session_id}",
             headers=st.session_state["header"],
             json=user_prompt,
-            timeout=20,
+            timeout=TIMEOUT_SECONDS,
         )
         res.raise_for_status()
         ai_response = res.json()
