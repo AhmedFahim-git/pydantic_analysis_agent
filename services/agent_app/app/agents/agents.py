@@ -3,9 +3,6 @@ from pydantic_ai import Agent, Capability, Tool
 from app.models.agent_models import SessionDep
 
 from .tools import (
-    generate_random_int_in_range,
-    get_current_time,
-    get_user_age_and_name,
     model,
     python_agent_tool,
     run_user_query,
@@ -16,24 +13,6 @@ new_capability = Capability(
     description="Use for getting current time, username and age, and random integer within a range",
     instructions="Use tools as appropriate.",
     tools=[
-        Tool(
-            get_current_time,
-            takes_ctx=False,
-            docstring_format="google",
-            require_parameter_descriptions=True,
-        ),
-        Tool(
-            get_user_age_and_name,
-            takes_ctx=True,
-            docstring_format="google",
-            require_parameter_descriptions=True,
-        ),
-        Tool(
-            generate_random_int_in_range,
-            takes_ctx=False,
-            docstring_format="google",
-            require_parameter_descriptions=True,
-        ),
         Tool(
             run_user_query,
             takes_ctx=True,

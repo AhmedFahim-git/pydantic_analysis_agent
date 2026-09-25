@@ -1,6 +1,4 @@
 import os
-from datetime import UTC, datetime
-from random import randrange
 from typing import Literal
 
 from k8s_agent_sandbox.async_sandbox import AsyncSandbox
@@ -156,63 +154,6 @@ Note:
 """
 
 
-def generate_random_int_in_range(high: int, low: int = 0) -> int:
-    return randrange(low, high + 1)
-
-
-generate_random_int_in_range.__doc__ = """Generate a random integer within an inclusive range.
-
-Use this tool when a random integer is needed between a lower and
-upper bound.
-
-Args:
-    high: The maximum value that can be returned. This value is
-        inclusive.
-    low: The minimum value that can be returned. This value is
-        inclusive. Defaults to 0.
-
-Returns:
-    A randomly generated integer between low and high, inclusive.
-
-Raises:
-    ValueError: If low is greater than high.
-"""
-
-
-def get_current_time() -> str:
-    return datetime.now(UTC).isoformat()
-
-
-get_current_time.__doc__ = """Get the current date and time in UTC.
-
-Use this tool when the current date or time is needed. The returned
-timestamp can be passed to other tools that require the current
-time.
-
-Returns:
-    The current UTC date and time as an ISO 8601 formatted string.
-"""
-
-
-def get_user_age_and_name(ctx: RunContext[SessionDep], current_time: str) -> str:
-    age = (
-        datetime.fromisoformat(current_time)
-        - datetime(year=2005, month=3, day=25, tzinfo=UTC)
-    ).days
-    return f"User name is: {ctx.deps.username} and age is: {age} days"
-
-
-get_user_age_and_name.__doc__ = """Get the user's name and age in days based on the current UTC time.
-
-Args:
-    current_time: The current UTC date and time in ISO 8601 format.
-        This value is used as the reference time for calculating
-        the number of days since the user's birth date.
-
-Returns:
-    A string containing the user's name and age in days.
-"""
-
 python_agent = Agent(
     model,
     name="python_agent",
@@ -278,9 +219,12 @@ async def python_agent_tool(user_input: str) -> str:
 python_agent_tool.__doc__ = """Execute a Python-related task using a dedicated Python subagent.
 
 The subagent interprets the user's request, uses a Jupyter-like Python
-environment when appropriate, and returns a concise answer based on the
-execution results. Use this tool for tasks that require Python execution,
-calculations, data analysis, code testing, debugging, or verification.
+environment, and returns a concise answer based on the execution results.
+Each tool call starts a fresh Jupyter session; no Python state, variables,
+files, imports, or execution history persist between tool calls.
+
+Use this tool for tasks that require Python execution, calculations, 
+data analysis, code testing, debugging, or verification.
 
 Args:
     user_input: The user's request or task to be solved using Python.
