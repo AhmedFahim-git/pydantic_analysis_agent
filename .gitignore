@@ -222,9 +222,9 @@ __marimo__/
 # Secrets Helm
 secret_values.yaml
 
-./services/bucket_manage/
-./services/sandbox_router/
+services/bucket_manage/
+services/sandbox_router/
 
-./manifests/bucket_manage/
-./manifests/floci/
-./manifests/sandbox_router/
+manifests/bucket_manage/
+manifests/floci/
+manifests/sandbox_router/
