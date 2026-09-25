@@ -19,7 +19,6 @@ manifests:
   rawYaml:
     # - https://github.com/kubernetes-sigs/agent-sandbox/releases/latest/download/sandbox-with-extensions.yaml
     - ./manifests/db/namespace.yaml
-    - ./manifests/sandbox_helm/namespace.yaml
     - ./manifests/gateway/gateway.yaml
     - ./manifests/gateway/host_gateway.yaml
   helm:

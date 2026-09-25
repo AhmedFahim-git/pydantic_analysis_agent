@@ -124,5 +124,4 @@ Output
 Return only the chat title.
 
 No explanation, commentary, alternatives, or additional text.""",
-    # instructions="You are a Chat Title generation agent. Give the user prompt, generate a short title that describes the prompt or what the user is asking. Give the short title only, nothing else.",
 )

@@ -5,11 +5,18 @@ from fastapi import FastAPI
 
 from app.api import auth, chat, user
 from app.auth.auth import hash_password
-from app.db.db_utils import dispose_engine, init_tables, make_init_data, make_schemas
+from app.db.db_utils import (
+    dispose_engine,
+    init_tables,
+    make_init_data,
+    make_schemas,
+    wait_for_db,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await wait_for_db()
     await init_tables()
     await make_init_data(pswd_hash_func=hash_password)
     await make_schemas()

@@ -1,11 +1,14 @@
+import asyncio
 import os
 from collections.abc import AsyncIterator, Callable, Iterable
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import (
     FromClause,
+    select,
     text,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -49,6 +52,29 @@ async def get_async_db_session() -> AsyncIterator[AsyncSession]:
         yield async_db_session
 
 
+async def wait_for_db(retries: int = 30, delay: float = 1, growth_factor: float = 1.5):
+    for attempt in range(retries):
+        try:
+            async with async_db_engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+                return True
+        except OperationalError:
+            if attempt < retries - 1:
+                await asyncio.sleep(delay)
+                delay *= growth_factor
+    return False
+
+
+async def check_user_role_exists() -> bool:
+    async with async_db_engine.begin() as conn:
+        res = (
+            await conn.execute(
+                text("SELECT 1 FROM pg_roles WHERE rolname='user_role';")
+            )
+        ).rowcount
+        return bool(res)
+
+
 async def init_tables():
     init_statements = """
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -57,6 +83,8 @@ CREATE ROLE user_role NOLOGIN;
 GRANT SELECT ON addresses, products, stores, stores_products, transactions, transactions_products TO user_role;
 CREATE POLICY user_view ON transactions FOR SELECT TO user_role USING ((SELECT split_part(current_user, '_', 2)::integer) = user_id);
 """
+    if await check_user_role_exists():
+        return
     admin_async_engine = create_async_engine(ADMIN_DB_URL)
     async with admin_async_engine.begin() as conn:
         await conn.execute(
@@ -91,14 +119,6 @@ async def get_table_examples(
 async def make_schemas() -> None:
     async with async_db_engine.begin() as conn:
         for table in TABLES:
-            # for table in [
-            #     Address,
-            #     Product,
-            #     Store,
-            #     StoreProduct,
-            #     Transaction,
-            #     TransactionProduct,
-            # ]:
             schema = get_table_schema(async_db_engine, table.__table__)
             examples = await get_table_examples(
                 conn,
@@ -158,6 +178,11 @@ async def run_sql_query(user_id: int, query: str) -> str:
 
 async def make_init_data(pswd_hash_func: Callable[[str], str]):
     async with AsyncSessionLocal() as session:
+        stmt = select(User).where(User.username == "user_1")
+        result = (await session.scalars(stmt)).one_or_none()
+        if result is not None:
+            return
+
         products = [
             Product(product_name=f"prod_{i}", product_price=i + 1) for i in range(1, 11)
         ]
