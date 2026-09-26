@@ -5,12 +5,15 @@ from k8s_agent_sandbox.async_sandbox import AsyncSandbox
 from k8s_agent_sandbox.async_sandbox_client import AsyncSandboxClient
 from k8s_agent_sandbox.commands.async_command_executor import AsyncCommandExecutor
 from k8s_agent_sandbox.models import SandboxInClusterConnectionConfig
+from langfuse import get_client
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.db.db_utils import TABLE_NAMES, get_schema_examples, run_sql_query
 from app.models.agent_models import SandboxDep, SessionDep, SQLQueryDep
+
+langfuse = get_client()
 
 model = OpenAIChatModel(
     os.environ["OPENAI_MODEL_NAME"],
@@ -19,8 +22,11 @@ model = OpenAIChatModel(
     ),
 )
 
+Agent.instrument_all()
+
 table_selection_agent = Agent(
     model,
+    name="sql_table_selection_agent",
     output_type=list[Literal[tuple(TABLE_NAMES)]],
 )
 
@@ -63,6 +69,7 @@ Available tables:
 
 sql_query_agent = Agent(
     model,
+    name="sql_query_agent",
     instructions="""You are a SQL generation agent.
 
 Your task is to generate a PostgreSQL SQL query that answers the user's
@@ -115,14 +122,12 @@ Available tables:
 async def run_user_query(ctx: RunContext[SessionDep], user_query: str) -> str:
     table_names_result = await table_selection_agent.run(user_query)
     assert table_names_result.output, f"No tables returned for query: {user_query}"
-    print(table_names_result.output)
     sql_query_result = await sql_query_agent.run(
         user_query,
         deps=SQLQueryDep(
             user_id=ctx.deps.user_id, table_names=table_names_result.output
         ),
     )
-    print(sql_query_result.output)
     return await run_sql_query(user_id=ctx.deps.user_id, query=sql_query_result.output)
 
 

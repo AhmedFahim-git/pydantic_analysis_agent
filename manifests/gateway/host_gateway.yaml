@@ -26,3 +26,33 @@ spec:
       protocol: TCP
       port: 8080
       targetPort: 8080
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: dockerhost-langfuse
+  namespace: langfuse
+  labels:
+    kubernetes.io/service-name: dockerhost-langfuse
+addressType: IPv4
+endpoints:
+  - addresses:
+      - 172.17.0.1 # docker0 bridge ip
+    conditions:
+      ready: true
+ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dockerhost-langfuse
+  namespace: langfuse
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080

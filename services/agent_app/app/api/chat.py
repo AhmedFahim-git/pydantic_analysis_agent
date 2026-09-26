@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from langfuse import get_client, observe, propagate_attributes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.auth import oauth2_scheme
@@ -16,6 +17,8 @@ from .user import make_user_service
 
 router = APIRouter()
 
+langfuse = get_client()
+
 
 def make_session(
     async_db_session: Annotated[AsyncSession, Depends(get_async_db_session)],
@@ -28,6 +31,23 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> User | None:
     return await user_service.get_current_user(token)
+
+
+@observe
+async def run_with_langfuse(
+    user: User, session_id: str, content: str, agent_service: AgentService
+) -> str:
+    with propagate_attributes(
+        user_id=str(user.user_id),
+        session_id=session_id,
+        metadata={"username": user.username, "email": user.email},
+    ):
+        return await agent_service.run_model(
+            content,
+            deps=SessionDep(
+                user_id=user.user_id, username=user.username, session_id=session_id
+            ),
+        )
 
 
 @router.post("", response_model=SessionCreate)
@@ -64,11 +84,11 @@ async def run_model(
     agent_service = AgentService(
         async_db_session=async_db_session, session_id=session_id
     )
-    output = await agent_service.run_model(
-        message_input.content,
-        deps=SessionDep(
-            user_id=user.user_id, username=user.username, session_id=session_id
-        ),
+    output = await run_with_langfuse(
+        user=user,
+        session_id=session_id,
+        content=message_input.content,
+        agent_service=agent_service,
     )
     return ConvItem(role="assistant", content=output)
 

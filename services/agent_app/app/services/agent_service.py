@@ -26,16 +26,11 @@ class AgentService:
         self.session = (await self._async_db_session.scalars(stmt)).one()
 
     async def _get_active_messages(self) -> list[Message]:
-        # await self._async_db_session.refresh(self.session)
         await self._setup()
         return await self.session.awaitable_attrs.active_messages
-        # stmt = select(Session).where(Session.session_id == self.session_id)
-        # session = (await self._async_db_session.scalars(stmt)).one()
-        # return session.active_messages
 
     async def get_conversation_history(self) -> ConvList:
         await self._setup()
-        # await self._async_db_session.refresh(self.session)
         all_messages = await self.session.awaitable_attrs.messages
         all_message_list = AgentService._db_message_to_pydantic_message(
             [item for item in all_messages if not item.is_compaction_message]
@@ -60,21 +55,6 @@ class AgentService:
                         ConvItem(role="assistant", content=part.content)
                     )
 
-            # first_part = message.parts[0]
-            # if isinstance(message, ModelRequest) and isinstance(
-            #     first_part, UserPromptPart
-            # ):
-            #     assert isinstance(first_part.content, str)
-            #     final_conversation_list.append(
-            #         ConvItem(role="user", content=first_part.content)
-            #     )
-            # elif isinstance(message, ModelResponse) and isinstance(
-            #     first_part, TextPart
-            # ):
-            #     assert isinstance(first_part.content, str)
-            #     final_conversation_list.append(
-            #         ConvItem(role="assistant", content=first_part.content)
-            #     )
         return ConvList(message_list=final_conversation_list)
 
     @staticmethod
@@ -130,50 +110,6 @@ class AgentService:
                     ),
                 ]
             )
-        for mes in result.all_messages():
-            if isinstance(mes, ModelRequest):
-                for part in mes.parts:
-                    if isinstance(part, UserPromptPart):
-                        print(part)
 
-        # new_messages = []
-        # if message_history == result.all_messages():
-        #     new_messages.append(
-        #         Message(
-        #             message_id=result.run_id,
-        #             content=result.new_messages_json(),
-        #             timestamp=result.timestamp,
-        #             session_id=self.session_id,
-        #             message_number=message_list[-1].message_number + 1,
-        #         )
-        #     )
-        # else:
-        #     await self._async_db_session.execute(
-        #         update(Session)
-        #         .where(Session.session_id == self.session_id)
-        #         .values(starting_message_number=message_list[-1].message_number + 1)
-        #     )
-        #     new_messages.append(
-        #         Message(
-        #             message_id=str(uuid4()),
-        #             content=ModelMessagesTypeAdapter.dump_json(
-        #                 result.all_messages()[: -len(result.new_messages())]
-        #             ),
-        #             timestamp=result.timestamp,
-        #             session_id=self.session_id,
-        #             is_compaction_message=True,
-        #             message_number=message_list[-1].message_number + 1,
-        #         )
-        #     )
-        #     new_messages.append(
-        #         Message(
-        #             message_id=result.run_id,
-        #             content=result.new_messages_json(),
-        #             timestamp=result.timestamp,
-        #             session_id=self.session_id,
-        #             message_number=message_list[-1].message_number + 2,
-        #         )
-        #     )
-        # self._async_db_session.add_all(new_messages)
         await self._async_db_session.commit()
         return result.output

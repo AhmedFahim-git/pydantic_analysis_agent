@@ -222,6 +222,8 @@ __marimo__/
 # Secrets Helm
 secret_values.yaml
 
+secret.yaml
+
 services/bucket_manage/
 services/sandbox_router/
 

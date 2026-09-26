@@ -5,6 +5,7 @@ requires-python = "==3.13.*"
 dependencies = [
     "fastapi>=0.141.1",
     "k8s-agent-sandbox[async]>=1.0.3",
+    "langfuse>=4.15.6",
     "psycopg[binary]>=3.3.5",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-ai-slim[duckduckgo,evals,logfire,mcp,openai,retries,temporal,web-fetch]>=2.43.0",

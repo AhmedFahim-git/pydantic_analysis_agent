@@ -1,3 +1,4 @@
+from langfuse import get_client
 from pydantic_ai import Agent, Capability, Tool
 
 from app.models.agent_models import SessionDep
@@ -7,6 +8,9 @@ from .tools import (
     python_agent_tool,
     run_user_query,
 )
+
+langfuse = get_client()
+Agent.instrument_all()
 
 new_capability = Capability(
     id="custom_capability",
@@ -31,6 +35,7 @@ new_capability = Capability(
 
 main_agent = Agent(
     model=model,
+    name="main_agent",
     deps_type=SessionDep,
     instructions="You are a helpful assistant",
     capabilities=[new_capability],
@@ -38,6 +43,7 @@ main_agent = Agent(
 
 title_agent = Agent(
     model=model,
+    name="title_agent",
     instructions="""You are a chat title generation agent.
 
 Your task is to generate a concise title for a new chat based only on the user's first message.

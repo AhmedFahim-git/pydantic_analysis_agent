@@ -30,9 +30,7 @@ from .schema import (
     User,
 )
 
-# DB_URL = "postgresql+psycopg://myuser:mysecretpassword@postgres-postgresql.postgres-helm:5432/mydb"
 DB_URL = f"postgresql+psycopg://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOSTNAME']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
-ADMIN_DB_URL = f"postgresql+psycopg://{os.environ['POSTGRES_ADMIN_USER']}:{os.environ['POSTGRES_ADMIN_PASSWORD']}@{os.environ['POSTGRES_HOSTNAME']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
 TABLE_SCHEMA_MAP: dict[str, str] = {}
 TABLE_EXAMPLE_MAP: dict[str, str] = {}
 
@@ -69,7 +67,7 @@ async def check_user_role_exists() -> bool:
     async with async_db_engine.begin() as conn:
         res = (
             await conn.execute(
-                text("SELECT 1 FROM pg_roles WHERE rolname='user_role';")
+                text("SELECT 1 FROM pg_policies WHERE policyname='user_view';")
             )
         ).rowcount
         return bool(res)
@@ -85,12 +83,6 @@ CREATE POLICY user_view ON transactions FOR SELECT TO user_role USING ((SELECT s
 """
     if await check_user_role_exists():
         return
-    admin_async_engine = create_async_engine(ADMIN_DB_URL)
-    async with admin_async_engine.begin() as conn:
-        await conn.execute(
-            text(f"ALTER ROLE {os.environ['POSTGRES_USER']} CREATEROLE;")
-        )
-    await admin_async_engine.dispose()
 
     async with async_db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
