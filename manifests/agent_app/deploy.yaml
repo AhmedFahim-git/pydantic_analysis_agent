@@ -21,6 +21,16 @@ spec:
           image: fahim03/agent_app:latest
           ports:
             - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: "/"
+              port: 8000
+            initialDelaySeconds: 0
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: 8000
           envFrom:
             - configMapRef:
                 name: agent-config
