@@ -1,5 +1,7 @@
+import json
 import os
 from collections import deque
+from collections.abc import Iterable
 
 import httpx2
 import streamlit as st
@@ -56,6 +58,26 @@ def chat_submit_callback(session_id: str | None = None):
         st.session_state["sessions"].appendleft(session_id)
         st.session_state["session_names"][session_id] = session["session_title"]
         st.session_state["select_chat"] = session_id
+
+
+def stream_messages(user_prompt: dict[str, str]) -> Iterable[str]:
+    start_index = 0
+    with (
+        httpx2.Client() as client,
+        client.sse(
+            f"{os.environ['AGENT_APP_URL']}/chat/{chat_session_id}/stream",
+            method="POST",
+            headers=st.session_state["header"],
+            json=user_prompt,
+            timeout=TIMEOUT_SECONDS,
+        ) as source,
+    ):
+        for event in source:
+            res = json.loads(event.data)
+            # res=event.json()
+            assert res["role"] == "assistant"
+            yield res["content"][start_index:]
+            start_index = len(res["content"])
 
 
 # Initialize chat history
@@ -187,15 +209,18 @@ if st.session_state.get("jwt"):
         with st.chat_message("user"):
             st.write(prompt)
         st.session_state["messages"].append(user_prompt)
-        res = httpx2.post(
-            f"{os.environ['AGENT_APP_URL']}/chat/{chat_session_id}",
-            headers=st.session_state["header"],
-            json=user_prompt,
-            timeout=TIMEOUT_SECONDS,
-        )
-        res.raise_for_status()
-        ai_response = res.json()
-        assert ai_response["role"] == "assistant"
-        with st.chat_message(ai_response["role"]):
-            st.write(ai_response["content"])
-        st.session_state["messages"].append(ai_response)
+        with st.chat_message("assistant"):
+            output = st.write_stream(stream_messages(user_prompt))
+        st.session_state["messages"].append({"role": "assistant", "content": output})
+        # res = httpx2.post(
+        #     f"{os.environ['AGENT_APP_URL']}/chat/{chat_session_id}",
+        #     headers=st.session_state["header"],
+        #     json=user_prompt,
+        #     timeout=TIMEOUT_SECONDS,
+        # )
+        # res.raise_for_status()
+        # ai_response = res.json()
+        # assert ai_response["role"] == "assistant"
+        # with st.chat_message(ai_response["role"]):
+        #     st.write(ai_response["content"])
+        # st.session_state["messages"].append(ai_response)

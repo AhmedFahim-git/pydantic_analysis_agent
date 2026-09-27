@@ -1,6 +1,8 @@
+from collections.abc import AsyncIterable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.sse import EventSourceResponse
 from langfuse import get_client, observe, propagate_attributes
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +38,7 @@ async def get_current_user(
 @observe
 async def run_with_langfuse(
     user: User, session_id: str, content: str, agent_service: AgentService
-) -> str:
+) -> ConvItem:
     with propagate_attributes(
         user_id=str(user.user_id),
         session_id=session_id,
@@ -48,6 +50,24 @@ async def run_with_langfuse(
                 user_id=user.user_id, username=user.username, session_id=session_id
             ),
         )
+
+
+@observe
+async def stream_with_langfuse(
+    user: User, session_id: str, content: str, agent_service: AgentService
+) -> AsyncIterable[ConvItem]:
+    with propagate_attributes(
+        user_id=str(user.user_id),
+        session_id=session_id,
+        metadata={"username": user.username, "email": user.email},
+    ):
+        async for message in agent_service.stream_model(
+            content,
+            deps=SessionDep(
+                user_id=user.user_id, username=user.username, session_id=session_id
+            ),
+        ):
+            yield message
 
 
 @router.post("", response_model=SessionCreate)
@@ -90,7 +110,31 @@ async def run_model(
         content=message_input.content,
         agent_service=agent_service,
     )
-    return ConvItem(role="assistant", content=output)
+    return output
+
+
+@router.post("/{session_id}/stream", response_class=EventSourceResponse)
+async def stream_model(
+    session_id: str,
+    message_input: ConvItem,
+    async_db_session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    user: Annotated[User | None, Depends(get_current_user)],
+) -> AsyncIterable[ConvItem]:
+    assert user
+    assert message_input.role == "user"
+    assert await SessionService(
+        async_db_session=async_db_session
+    ).validate_user_session(user.user_id, session_id)
+    agent_service = AgentService(
+        async_db_session=async_db_session, session_id=session_id
+    )
+    async for message in stream_with_langfuse(
+        user=user,
+        session_id=session_id,
+        content=message_input.content,
+        agent_service=agent_service,
+    ):
+        yield message
 
 
 @router.get("/{session_id}/all_messages", response_model=ConvList)
