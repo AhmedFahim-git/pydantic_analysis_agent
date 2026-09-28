@@ -20,6 +20,16 @@ spec:
           image: fahim03/streamlit_app:latest
           ports:
             - containerPort: 8501
+          readinessProbe:
+            httpGet:
+              path: "/_stcore/health"
+              port: 8501
+            initialDelaySeconds: 0
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: "/_stcore/health"
+              port: 8501
           envFrom:
             - configMapRef:
                 name: streamlit-config
