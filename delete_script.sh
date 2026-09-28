@@ -1,14 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-NAMESPACE="langfuse"
-RELEASE="langfuse"
-
 echo "Deleting Agent Sandbox CRDs"
 kubectl delete -f https://github.com/kubernetes-sigs/agent-sandbox/releases/latest/download/sandbox-with-extensions.yaml
 
-# echo "Uninstalling Langfuse Chart"
-# helm uninstall "$RELEASE" --namespace "$NAMESPACE" --wait
+echo "Uninstalling Langfuse Chart"
+helm uninstall "$RELEASE" --namespace "$NAMESPACE" --wait
 
 echo "Deleting Langfuse secrets"
 kubectl delete -f ./manifests/langfuse/secret.yaml

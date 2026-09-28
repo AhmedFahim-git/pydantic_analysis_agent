@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from app.api import auth, chat, user
 from app.auth.auth import hash_password
@@ -31,10 +32,10 @@ app.include_router(auth.router, prefix="/auth")
 app.include_router(chat.router, prefix="/chat")
 
 
-@app.get("/", summary="Health Check")
+@app.get("/", summary="Health Check", response_class=JSONResponse)
 async def health_check():
     """A simple health check endpoint to confirm the server is running."""
-    return {"status": "ok", "message": "Agent is active."}
+    return JSONResponse(content={"status": "ok", "message": "Agent is active."})
 
 
 uvicorn.run(app, host="0.0.0.0", port=8000)
