@@ -204,6 +204,7 @@ if st.session_state.get("jwt"):
         key="user_prompt",
         on_submit=chat_submit_callback,
         kwargs={"session_id": chat_session_id},
+        submit_mode="disable",
     ):
         user_prompt = {"role": "user", "content": prompt}
         with st.chat_message("user"):

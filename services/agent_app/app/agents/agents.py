@@ -1,5 +1,10 @@
 from langfuse import get_client
 from pydantic_ai import Agent, Capability, Tool
+from pydantic_ai_harness import (
+    ClearToolResults,
+    SummarizingCompaction,
+    TieredCompaction,
+)
 
 from app.models.agent_models import SessionDep
 
@@ -38,7 +43,18 @@ main_agent = Agent(
     name="main_agent",
     deps_type=SessionDep,
     instructions="You are a helpful assistant",
-    capabilities=[new_capability],
+    capabilities=[
+        new_capability,
+        TieredCompaction(
+            [
+                ClearToolResults(),
+                SummarizingCompaction(
+                    keep_messages=20, preserve_first_user_message=False
+                ),
+            ],
+            target_fraction=0.9,
+        ),
+    ],
 )
 
 title_agent = Agent(

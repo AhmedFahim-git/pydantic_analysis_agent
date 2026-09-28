@@ -6,7 +6,7 @@ from k8s_agent_sandbox.async_sandbox_client import AsyncSandboxClient
 from k8s_agent_sandbox.commands.async_command_executor import AsyncCommandExecutor
 from k8s_agent_sandbox.models import SandboxInClusterConnectionConfig
 from langfuse import get_client
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelProfile, RunContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -20,6 +20,7 @@ model = OpenAIChatModel(
     provider=OpenAIProvider(
         base_url=os.environ["OPENAI_BASE_URL"], api_key=os.environ["OPENAI_API_KEY"]
     ),
+    profile=ModelProfile(context_window=int(os.environ["CONTEXT_LENGTH"])),
 )
 
 Agent.instrument_all()
