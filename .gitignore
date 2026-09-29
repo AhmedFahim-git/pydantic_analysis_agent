@@ -230,3 +230,7 @@ services/sandbox_router/
 manifests/bucket_manage/
 manifests/floci/
 manifests/sandbox_router/
+
+main.py
+main_2.py
+streamlit_example.py
